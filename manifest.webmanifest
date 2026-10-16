@@ -1,0 +1,13 @@
+{
+  "name": "搭車易 · 香港到站時間同落車提示",
+  "short_name": "搭車易",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F3EF",
+  "theme_color": "#15171C",
+  "lang": "zh-Hant-HK",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

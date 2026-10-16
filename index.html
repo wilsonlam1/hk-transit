@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15171C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="搭車易">
+<title>搭車易 · 香港到站時間同落車提示</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main id="app">
+
+  <!-- ===== 港鐵 ===== -->
+  <section id="view-mtr" class="view active" aria-labelledby="h-mtr">
+    <h1 id="h-mtr">港鐵到站時間</h1>
+    <div class="card form">
+      <label class="field"><span>綫路</span><select id="mtr-line"></select></label>
+      <div class="pair">
+        <label class="field"><span>上車站</span><select id="mtr-from"></select></label>
+        <button id="mtr-swap" class="icon-btn" aria-label="對調上車站同落車站">⇅</button>
+        <label class="field"><span>落車站</span><select id="mtr-to"></select></label>
+      </div>
+    </div>
+    <div class="row-head">
+      <h2>下一班車</h2>
+      <button id="mtr-fav" class="link-btn">☆ 收藏</button>
+    </div>
+    <div id="mtr-list" class="card list" aria-live="polite"></div>
+    <p id="mtr-meta" class="meta"></p>
+  </section>
+
+  <!-- ===== 巴士 / 小巴 ===== -->
+  <section id="view-bus" class="view" aria-labelledby="h-bus">
+    <h1 id="h-bus">巴士 / 小巴</h1>
+    <div class="seg" role="group" aria-label="揀公司">
+      <button class="seg-btn on" data-co="KMB" aria-pressed="true">九巴</button>
+      <button class="seg-btn" data-co="CTB" aria-pressed="false">城巴</button>
+      <button class="seg-btn" data-co="GMB" aria-pressed="false">綠色小巴</button>
+    </div>
+    <form id="bus-form" class="search">
+      <label class="sr-only" for="bus-route">路線號碼</label>
+      <input id="bus-route" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="輸入路線，例如 234X">
+      <button type="submit" class="btn dark">搵</button>
+    </form>
+    <div id="bus-dirs" class="dirs"></div>
+    <div id="bus-stops" class="card list stops"></div>
+    <div id="bus-bar" class="bar hidden">
+      <div id="bus-bar-text" class="bar-text"></div>
+      <div class="bar-btns">
+        <button id="bus-fav" class="btn ghost">☆ 收藏</button>
+        <button id="bus-start" class="btn accent">開始行程</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 收藏 ===== -->
+  <section id="view-favs" class="view" aria-labelledby="h-favs">
+    <h1 id="h-favs">收藏</h1>
+    <div id="fav-list" class="card list"></div>
+    <p class="meta">收藏只會存喺呢部手機嘅瀏覽器入面。</p>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section id="view-settings" class="view" aria-labelledby="h-settings">
+    <h1 id="h-settings">設定</h1>
+    <h2 class="group">落車提示</h2>
+    <div class="card pad">
+      <p class="label">預設幾時提我</p>
+      <div class="seg four" id="lead-seg" role="group" aria-label="提示時間">
+        <button class="seg-btn" data-lead="30">30 秒</button>
+        <button class="seg-btn" data-lead="60">1 分鐘</button>
+        <button class="seg-btn" data-lead="120">2 分鐘</button>
+        <button class="seg-btn" data-lead="prev">前一站</button>
+      </div>
+      <label class="switch-row"><span>震動</span><input type="checkbox" id="set-vibrate"></label>
+      <label class="switch-row"><span>響聲</span><input type="checkbox" id="set-sound"></label>
+      <label class="switch-row">
+        <span>港鐵每個站大約幾多分鐘<small>用嚟估計到站時間</small></span>
+        <input type="number" id="set-perstop" min="1" max="5" step="0.5" inputmode="decimal">
+      </label>
+    </div>
+    <h2 class="group">權限同測試</h2>
+    <div class="card pad stack">
+      <button id="btn-perm" class="btn ghost">開啟通知權限</button>
+      <button id="btn-test" class="btn ghost">測試落車提示</button>
+      <p class="meta" id="perm-state"></p>
+    </div>
+    <h2 class="group">關於</h2>
+    <div class="card pad">
+      <p class="meta">數據來源：DATA.GOV.HK 開放數據（港鐵、九巴、城巴、綠色專線小巴）。班次時間以官方資料為準。</p>
+      <p class="meta">版本 0.1.0（試用版）</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== 底部選單 ===== -->
+<nav id="nav" aria-label="主選單">
+  <button class="nav-btn on" data-view="mtr" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l-2-4M15 21l2-4"/></svg>港鐵</button>
+  <button class="nav-btn" data-view="bus"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 10h16M7 21v-3M17 21v-3"/></svg>巴士小巴</button>
+  <button class="nav-btn" data-view="favs"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9z"/></svg>收藏</button>
+  <button class="nav-btn" data-view="settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4"/></svg>設定</button>
+</nav>
+
+<!-- ===== 行程中 ===== -->
+<section id="trip" class="overlay hidden" aria-labelledby="trip-title">
+  <header class="trip-top">
+    <button id="trip-close" class="icon-btn" aria-label="結束行程">✕</button>
+    <h2 id="trip-title">行程中</h2>
+    <span class="live">實時</span>
+  </header>
+  <div class="trip-body">
+    <div class="hero">
+      <div class="hero-line"><span id="trip-chip" class="chip"></span><span id="trip-towards"></span></div>
+      <div class="hero-main">
+        <div><div class="hero-label">落車站</div><div id="trip-dest" class="hero-dest"></div></div>
+        <div class="hero-right"><div id="trip-big" class="big"></div><div id="trip-small" class="hero-label"></div></div>
+      </div>
+      <div id="trip-note" class="hero-note"></div>
+    </div>
+    <div id="trip-map" class="map hidden"></div>
+    <div id="trip-stops" class="card list timeline"></div>
+    <div class="card pad">
+      <p class="label">落車提示</p>
+      <p id="trip-remind" class="remind"></p>
+      <p class="meta">行程中請保持呢個畫面開住（會自動防止熄屏）。iPhone 要將網頁「加入主畫面」先收到通知。</p>
+    </div>
+  </div>
+  <div class="trip-actions">
+    <button id="trip-end" class="btn ghost">結束行程</button>
+    <button id="trip-test" class="btn accent">預覽提示</button>
+  </div>
+</section>
+
+<!-- ===== 落車提示 ===== -->
+<section id="alert" class="overlay alert hidden" role="alertdialog" aria-labelledby="alert-stop">
+  <div class="alert-top"><span id="alert-title">落車提示</span><span id="alert-chip"></span></div>
+  <div class="alert-main">
+    <div class="alert-next">下一站</div>
+    <div id="alert-stop" class="alert-stop"></div>
+    <div id="alert-action" class="alert-action">準備落車</div>
+    <div id="alert-sub" class="alert-sub"></div>
+  </div>
+  <div class="alert-btns">
+    <button id="alert-ok" class="btn white">知道，準備落車</button>
+    <button id="alert-done" class="btn outline">已經落咗車</button>
+  </div>
+</section>
+
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
